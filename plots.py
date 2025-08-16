@@ -6,10 +6,10 @@ from pypfopt import EfficientFrontier, risk_models, expected_returns
 from scipy.optimize import minimize
 
 # Load & prep
-sbin = pd.read_csv("data/SBIN.NS2000-01-012024-01-01.csv", parse_dates=["Date"])
-hdfc = pd.read_csv("data/HDFCBANK.NS2000-01-012024-01-01.csv", parse_dates=["Date"])
-df = (sbin[["Date","Close"]].rename(columns={"Close":"SBIN"})
-      .merge(hdfc[["Date","Close"]].rename(columns={"Close":"HDFCBANK"}), on="Date")
+cipla = pd.read_csv("data/CIPLA.NS2000-01-012024-01-01.csv", parse_dates=["Date"])
+lnt = pd.read_csv("data/LNT2000-01-012024-01-01.csv", parse_dates=["Date"])
+df = (cipla[["Date","Close"]].rename(columns={"Close":"CIPLA"})
+      .merge(lnt[["Date","Close"]].rename(columns={"Close":"LNT"}), on="Date")
       .set_index("Date"))
 rets = df.pct_change().dropna()
 mu = expected_returns.mean_historical_return(df)   # uses prices internally
