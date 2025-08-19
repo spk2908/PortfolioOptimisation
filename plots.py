@@ -35,7 +35,7 @@ grid = np.linspace(mu.min()+1e-6, mu.max()-1e-6, 100)
 
 mv_pts, cvar_pts, var_pts = [], [], []
 common_pts = []   # intersections in weight space
-w_tol = 1e-2
+w_tol = 1e-2 # tolerance for weight differences
 num_assets = len(mu)
 bounds = tuple((0, 1) for asset in range(num_assets)) # long only
 initial_guess = np.array(num_assets * [1. / num_assets,])
@@ -86,15 +86,31 @@ for r in grid:
     mv_pts.append((vol_mv, ret_mv, w_mv))
     cvar_pts.append((cvar_risk, ret_c, w_c))
 
-    # intersection in weight space (same portfolio under all criteria)
-    if w_var is not None and np.allclose(w_mv.values, w_c.reindex(w_mv.index).values, atol=w_tol) and np.allclose(w_mv.values, w_var.reindex(w_mv.index).values, atol=w_tol):
-        common_pts.append({
-            "ret": float(ret_mv),
-            "w": w_mv,
-            "mv_risk": float(vol_mv),
-            "cvar_risk": float(cvar_risk),
-            "var_risk": float(portfolio_var(w_mv, rets)),
-        })
+common_pts = []
+
+# Convert lists to dicts keyed by rounded weights (to allow matching)
+def weight_key(w, tol=1e-2):
+    return tuple(np.round(w.values / tol) * tol)  # round to tolerance grid
+
+mv_dict   = {weight_key(w): (risk, ret, w) for risk, ret, w in mv_pts}
+cvar_dict = {weight_key(w): (risk, ret, w) for risk, ret, w in cvar_pts}
+var_dict  = {weight_key(w): (risk, ret, w) for risk, ret, w in var_pts}
+
+# Intersection of keys
+common_keys = set(mv_dict.keys()) & set(cvar_dict.keys()) & set(var_dict.keys())
+
+for k in common_keys:
+    risk_mv, ret_mv, w_mv = mv_dict[k]
+    risk_c, ret_c, w_c    = cvar_dict[k]
+    risk_v, ret_v, w_v    = var_dict[k]
+
+    common_pts.append({
+        "ret": float(ret_mv),  # they may differ slightly, could also take average
+        "w": w_mv,
+        "mv_risk": float(risk_mv),
+        "cvar_risk": float(risk_c),
+        "var_risk": float(risk_v),
+    })
 
 # report
 if common_pts:
